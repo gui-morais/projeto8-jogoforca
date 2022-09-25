@@ -5,16 +5,23 @@ import palavras from "./Palavras";
 import alfabeto from "./Alfabeto";
 
 export default function App() {
-  const [palavraSorteada, setPalavraSorteada] = useState([..."guílherme"]);
-  const [letrasUtilizadas, setLetrasUtilizadas] = useState(["g", "e"]);
+  const [palavraSorteada, setPalavraSorteada] = useState([]);
+  const [letrasUtilizadas, setLetrasUtilizadas] = useState([]);
   const [venceuJogo, setVenceuJogo] = useState(false);
-  const [perdeuJogo, setPerdeuJogo] = useState(true);
+  const [perdeuJogo, setPerdeuJogo] = useState(false);
   const [erros, setErros] = useState(0);
   const [acertos, setAcertos] = useState(0);
+  const [chute, setChute] = useState("");
 
   function sorteiaPalavra() {
     const indexPalavraSorteada = Math.floor(Math.random() * palavras.length);
-    setPalavraSorteada(...palavras[indexPalavraSorteada]);
+    setPalavraSorteada([...palavras[indexPalavraSorteada]]);
+    setLetrasUtilizadas([]);
+    setVenceuJogo(false);
+    setPerdeuJogo(false);
+    setErros(0);
+    setAcertos(0);
+    setChute("");
   }
 
   function retiraSinais(letra) {
@@ -50,6 +57,9 @@ export default function App() {
       case "ũ":
         letraSemSinais = "u";
         break;
+      case "ç":
+        letraSemSinais = "c";
+        break;
       default:
     }
     return letraSemSinais;
@@ -64,54 +74,89 @@ export default function App() {
     return palavraSemSinais.includes(letraSemSinais);
   }
 
+  function comparaChute() {
+    const palavraSorteadaSemSinais = [];
+    palavraSorteada.map((letraPalavra) =>
+      palavraSorteadaSemSinais.push(retiraSinais(letraPalavra))
+    );
+    console.log(palavraSorteadaSemSinais);
+    const palavraChute = [...chute.toLowerCase()];
+    palavraChute.map(
+      (letraPalavra, index) =>
+        (palavraChute[index] = retiraSinais(letraPalavra))
+    );
+    console.log(palavraChute);
+    let ganhou = true;
+    palavraSorteadaSemSinais.map((letraPalavra, index) => {
+      if (letraPalavra !== palavraChute[index]) {
+        ganhou = false;
+      }
+    });
+    if (ganhou) {
+      setVenceuJogo(true);
+    } else {
+      setPerdeuJogo(true);
+      setErros(6);
+    }
+  }
+
+  function botaoChute() {
+    if (
+      palavraSorteada.length === 0 ||
+      venceuJogo === true ||
+      perdeuJogo === true
+    ) {
+      return (<>
+      <div>Já sei a palavra!</div>
+      <input data-identifier="type-guess"
+        disabled
+        type="text"
+        onChange={(e) => setChute(e.target.value)}
+        value={chute}
+      ></input>
+      <button disabled data-identifier="guess-button">Chutar</button>
+      </>);
+    } else {
+      return (<>
+      <div>Já sei a palavra!</div>
+        <input data-identifier="type-guess"
+          type="text"
+          onChange={(e) => setChute(e.target.value)}
+          value={chute}
+        ></input>
+      <button onClick={comparaChute} data-identifier="guess-button">Chutar</button>
+      </>);
+    }
+  }
+
   return (
     <Conteudo>
       <GlobalStyle />
 
       <Jogo>
-        <img
+        <img data-identifier="game-image"
           src={"/assets/forca" + erros + ".png"}
           alt="Não foi possível carregar a imagem"
         ></img>
         <LadoDireito>
-          <Botao>Escolher Palavra</Botao>
-          {() => {
-            if (venceuJogo) {
-              return (
-                <Palavra cor="#58af61">
-                  {palavraSorteada.map((letra) => (
-                    <div>{letra}</div>
-                  ))}
-                </Palavra>);
-            } else if (perdeuJogo) {
-              return (
-                <Palavra cor="#EF482A">
-                  {palavraSorteada.map((letra) => (
-                    <div>{letra}</div>
-                  ))}
-                </Palavra>);
-            } else {
-              return (
-                <Palavra cor="black">
-                  {palavraSorteada.map((letra) => (
-                    <div>
-                      {comparaLetras(letrasUtilizadas, letra) ||
-                      perdeuJogo ||
-                      venceuJogo
-                        ? letra
-                        : "_"}
-                    </div>
-                  ))}
-                </Palavra>);
-            }
-          }}
+          <Botao onClick={sorteiaPalavra} data-identifier="choose-word">Escolher Palavra</Botao>
 
-          <Palavra>
-            {palavraSorteada.map((letra) => (
-              <div>
+          <Palavra data-identifier="word"
+            cor={() => {
+              if (venceuJogo) {
+                return "#58af61";
+              } else if (perdeuJogo) {
+                return "#EF482A";
+              } else {
+                return "black";
+              }
+            }}
+          >
+            {palavraSorteada.map((letra, index) => (
+              <div key={index}>
                 {comparaLetras(letrasUtilizadas, letra) ||
-                perdeuJogo ||
-                venceuJogo
+                venceuJogo ||
+                perdeuJogo
                   ? letra
                   : "_"}
               </div>
@@ -121,17 +166,18 @@ export default function App() {
       </Jogo>
 
       <Letras>
-        {alfabeto.map((letra) => {
+        {alfabeto.map((letra, index) => {
           if (
             comparaLetras(letrasUtilizadas, letra) ||
             palavraSorteada.length === 0 ||
             venceuJogo === true ||
             perdeuJogo === true
           ) {
-            return <Letra disabled>{letra.toUpperCase()}</Letra>;
+            return <Letra disabled data-identifier="letter">{letra.toUpperCase()}</Letra>;
           } else {
             return (
-              <Letra
+              <Letra data-identifier="letter"
+                key={index}
                 onClick={() => {
                   setLetrasUtilizadas([...letrasUtilizadas, letra]);
                   if (comparaLetras(palavraSorteada, letra)) {
@@ -160,9 +206,7 @@ export default function App() {
       </Letras>
 
       <Chute>
-        <div>Já sei a palavra!</div>
-        <input type="text"></input>
-        <button>Chutar</button>
+        {botaoChute()}
       </Chute>
     </Conteudo>
   );
@@ -212,7 +256,7 @@ const Palavra = styled.div`
   width: 100%;
   display: flex;
   justify-content: flex-end;
-  color: ${props => props.cor};
+  color: ${(props) => props.cor};
   div {
     font-size: 40px;
     font-weight: 900;
